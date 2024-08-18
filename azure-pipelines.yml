@@ -31,10 +31,6 @@ jobs:
       - checkout: self
         fetchDepth: 0
 
-      # Set Azure DevOps CLI default settings
-      - bash: az devops configure --defaults organization=$(System.TeamFoundationCollectionUri) project=$(System.TeamProject)
-        displayName: 'Set default Azure DevOps organization and project'
-
       # Get last successful commit from Azure DevOps CLI
       - bash: |
           LAST_SHA=$(az pipelines build list --branch $(Build.SourceBranchName) --definition-ids $(System.DefinitionId) --result succeeded --top 1 --query "[0].triggerInfo.\"ci.sourceSha\"")
