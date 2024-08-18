@@ -53,11 +53,12 @@ jobs:
       # Install dependencies
       - script: npm ci --legacy-peer-deps
         displayName: 'Install dependencies'
-
+      - bash: |
+          BRANCH_NAME=$(git rev-parse --abbrev-ref HEAD)
+        displayName: 'Get branch name'
       # Build specific projects based on the branch
       - script: |
           echo "Determining which project to build..."
-          BRANCH_NAME=$(git rev-parse --abbrev-ref HEAD)
           
           if [[ $BRANCH_NAME == shell/* ]] || [[ $(npx nx affected:apps --base=$(BASE_SHA) --head=$(HEAD_SHA) --plain) == *"shell"* ]]; then
             echo "Building shell..."
@@ -80,39 +81,4 @@ jobs:
           fi
         displayName: 'Conditional Build'
 
-      # Install Python for AWS CLI
-      - task: UsePythonVersion@0
-        inputs:
-          versionSpec: '3.x'
-        displayName: 'Install Python 3.x for AWS CLI'
 
-      # Install AWS CLI
-      - script: |
-          curl "https://d1uj6qtbmh3dt5.cloudfront.net/awscli-exe-linux-x86_64.zip" -o "awscliv2.zip"
-          unzip awscliv2.zip
-          sudo ./aws/install
-        displayName: 'Install AWS CLI'
-
-      # Configure AWS CLI
-      - script: |
-          aws configure set aws_access_key_id $(AWS_ACCESS_KEY_ID)
-          aws configure set aws_secret_access_key $(AWS_SECRET_ACCESS_KEY)
-          aws configure set default.region $(AWS_REGION)
-        displayName: 'Configure AWS CLI'
-        env:
-          AWS_ACCESS_KEY_ID: $(AWS_ACCESS_KEY_ID)
-          AWS_SECRET_ACCESS_KEY: $(AWS_SECRET_ACCESS_KEY)
-          AWS_REGION: $(AWS_REGION)
-
-      # Upload build artifacts to S3
-      - script: |
-          echo "Uploading build artifacts to S3..."
-          BUCKET_NAME='your-s3-bucket-name'
-          BUILD_PATH='dist' # Adjust according to your build output directory
-
-          aws s3 sync $BUILD_PATH s3://$BUCKET_NAME/ --delete
-        displayName: 'Upload to S3'
-        env:
-          AWS_ACCESS_KEY_ID: $(AWS_ACCESS_KEY_ID)
-          AWS_SECRET_ACCESS_KEY: $(AWS_SECRET_ACCESS_KEY)
-          AWS_REGION: $(AWS_REGION)
