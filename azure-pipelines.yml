@@ -4,9 +4,7 @@ trigger:
   branches:
     include:
       - main
-      - mrf1/*
-      - mrf2/*
-      - shell/*
+
 pr:
   branches:
     include:
@@ -14,6 +12,7 @@ pr:
       - mrf1/*
       - mrf2/*
       - shell/*
+
 variables:
   CI: 'true'
   ${{ if eq(variables['Build.Reason'], 'PullRequest') }}:
@@ -26,15 +25,18 @@ variables:
   HEAD_SHA: $(git rev-parse HEAD)
 
 jobs:
-  - job: main
-    pool: my-personal-computer
+  - job: build_and_deploy
+    pool:
+      vmImage: 'ubuntu-latest'
     steps:
       - checkout: self
         fetchDepth: 0
-      # Set Azure Devops CLI default settings
+
+      # Set Azure DevOps CLI default settings
       - bash: az devops configure --defaults organization=$(System.TeamFoundationCollectionUri) project=$(System.TeamProject)
         displayName: 'Set default Azure DevOps organization and project'
-      # Get last successfull commit from Azure Devops CLI
+
+      # Get last successful commit from Azure DevOps CLI
       - bash: |
           LAST_SHA=$(az pipelines build list --branch $(Build.SourceBranchName) --definition-ids $(System.DefinitionId) --result succeeded --top 1 --query "[0].triggerInfo.\"ci.sourceSha\"")
           if [ -z "$LAST_SHA" ]
@@ -49,19 +51,73 @@ jobs:
         env:
           AZURE_DEVOPS_EXT_PAT: $(System.AccessToken)
 
-      
-      
+      # Install Nx CLI
+      - script: npm install -g nx
+        displayName: 'Install Nx CLI'
 
-      # This enables task distribution via Nx Cloud
-      # Run this command as early as possible, before dependencies are installed
-      # Learn more at https://nx.dev/ci/reference/nx-cloud-cli#npx-nxcloud-startcirun
-      - script: npx nx-cloud start-ci-run --distribute-on="3 linux-medium-js" --stop-agents-after="build"
-      
+      # Install dependencies
       - script: npm ci --legacy-peer-deps
-      - script: git branch --track main origin/main
-        condition: eq(variables['Build.Reason'], 'PullRequest')
+        displayName: 'Install dependencies'
 
-      # Prepend any command with "nx-cloud record --" to record its logs to Nx Cloud
-      # - script: npx nx-cloud record -- echo Hello World
-      # Nx Affected runs only tasks affected by the changes in this PR/commit. Learn more: https://nx.dev/ci/features/affected
-      - script: npx nx affected --base=$(BASE_SHA) --head=$(HEAD_SHA) lint test build
+      # Build specific projects based on the branch
+      - script: |
+          echo "Determining which project to build..."
+          BRANCH_NAME=$(git rev-parse --abbrev-ref HEAD)
+          
+          if [[ $BRANCH_NAME == shell/* ]] || [[ $(npx nx affected:apps --base=$(BASE_SHA) --head=$(HEAD_SHA) --plain) == *"shell"* ]]; then
+            echo "Building shell..."
+            npx nx build shell
+          fi
+
+          if [[ $BRANCH_NAME == mrf1/* ]] || [[ $(npx nx affected:apps --base=$(BASE_SHA) --head=$(HEAD_SHA) --plain) == *"mrf1"* ]]; then
+            echo "Building mrf1..."
+            npx nx build mrf1
+          fi
+
+          if [[ $BRANCH_NAME == mrf2/* ]] || [[ $(npx nx affected:apps --base=$(BASE_SHA) --head=$(HEAD_SHA) --plain) == *"mrf2"* ]]; then
+            echo "Building mrf2..."
+            npx nx build mrf2
+          fi
+
+          if [[ $(npx nx affected:apps --base=$(BASE_SHA) --head=$(HEAD_SHA) --plain) == "" ]]; then
+            echo "Building all projects..."
+            npx nx build --all
+          fi
+        displayName: 'Conditional Build'
+
+      # Install Python for AWS CLI
+      - task: UsePythonVersion@0
+        inputs:
+          versionSpec: '3.x'
+        displayName: 'Install Python 3.x for AWS CLI'
+
+      # Install AWS CLI
+      - script: |
+          curl "https://d1uj6qtbmh3dt5.cloudfront.net/awscli-exe-linux-x86_64.zip" -o "awscliv2.zip"
+          unzip awscliv2.zip
+          sudo ./aws/install
+        displayName: 'Install AWS CLI'
+
+      # Configure AWS CLI
+      - script: |
+          aws configure set aws_access_key_id $(AWS_ACCESS_KEY_ID)
+          aws configure set aws_secret_access_key $(AWS_SECRET_ACCESS_KEY)
+          aws configure set default.region $(AWS_REGION)
+        displayName: 'Configure AWS CLI'
+        env:
+          AWS_ACCESS_KEY_ID: $(AWS_ACCESS_KEY_ID)
+          AWS_SECRET_ACCESS_KEY: $(AWS_SECRET_ACCESS_KEY)
+          AWS_REGION: $(AWS_REGION)
+
+      # Upload build artifacts to S3
+      - script: |
+          echo "Uploading build artifacts to S3..."
+          BUCKET_NAME='your-s3-bucket-name'
+          BUILD_PATH='dist' # Adjust according to your build output directory
+
+          aws s3 sync $BUILD_PATH s3://$BUCKET_NAME/ --delete
+        displayName: 'Upload to S3'
+        env:
+          AWS_ACCESS_KEY_ID: $(AWS_ACCESS_KEY_ID)
+          AWS_SECRET_ACCESS_KEY: $(AWS_SECRET_ACCESS_KEY)
+          AWS_REGION: $(AWS_REGION)
