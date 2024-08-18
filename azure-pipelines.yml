@@ -27,8 +27,7 @@ variables:
 
 jobs:
   - job: main
-    pool:
-      vmImage: 'ubuntu-latest'
+    pool: my-personal-computer
     steps:
       - checkout: self
         fetchDepth: 0
