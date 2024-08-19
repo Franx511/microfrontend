@@ -56,27 +56,26 @@ jobs:
       # Build specific projects based on the branch
       - script: |
           echo "Determining which project to build..."
-          BRANCH_NAME=$(git rev-parse --abbrev-ref HEAD)
+          set BRANCH_NAME=%Build.SourceBranchName%
 
-          if [[ $BRANCH_NAME == shell/* ]] || [[ $(npx nx affected:apps --base=$(BASE_SHA) --head=$(HEAD_SHA) --plain) == *"shell"* ]]; then
+          if "%BRANCH_NAME%"=="shell/*" (
             echo "Building shell..."
             npx nx build shell
-          fi
+          )
 
-          if [[ $BRANCH_NAME == mrf1/* ]] || [[ $(npx nx affected:apps --base=$(BASE_SHA) --head=$(HEAD_SHA) --plain) == *"mrf1"* ]]; then
+          if "%BRANCH_NAME%"=="mrf1/*" (
             echo "Building mrf1..."
             npx nx build mrf1
-          fi
+          )
 
-          if [[ $BRANCH_NAME == mrf2/* ]] || [[ $(npx nx affected:apps --base=$(BASE_SHA) --head=$(HEAD_SHA) --plain) == *"mrf2"* ]]; then
+          if "%BRANCH_NAME%"=="mrf2/*" (
             echo "Building mrf2..."
             npx nx build mrf2
-          fi
+          )
 
-          if [[ $(npx nx affected:apps --base=$(BASE_SHA) --head=$(HEAD_SHA) --plain) == "" ]]; then
+          if "%BRANCH_NAME%"=="" (
             echo "Building all projects..."
             npx nx build --all
-          fi
+          )
         displayName: 'Conditional Build'
-
 
