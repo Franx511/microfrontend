@@ -47,11 +47,11 @@ jobs:
           AZURE_DEVOPS_EXT_PAT: $(System.AccessToken)
 
       # Install Nx CLI
-      - script: npm install -g nx
+      - bash: npm install -g nx
         displayName: 'Install Nx CLI'
 
       # Install dependencies
-      - script: npm ci --legacy-peer-deps
+      - bash: npm ci --legacy-peer-deps
         displayName: 'Install dependencies'
       # Build specific projects based on the branch
       - bash: |
