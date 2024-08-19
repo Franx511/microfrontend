@@ -75,7 +75,7 @@ jobs:
 
           if "%BRANCH_NAME%"=="" (
             echo "Building all projects..."
-            npx nx build --all
+            npx nx run-many -t=build
           )
         displayName: 'Conditional Build'
 
