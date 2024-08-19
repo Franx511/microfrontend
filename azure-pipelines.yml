@@ -53,13 +53,11 @@ jobs:
       # Install dependencies
       - script: npm ci --legacy-peer-deps
         displayName: 'Install dependencies'
-      - bash: |
-          BRANCH_NAME=$(git rev-parse --abbrev-ref HEAD)
-        displayName: 'Get branch name'
       # Build specific projects based on the branch
-      - script: |
+      - bash: |
           echo "Determining which project to build..."
-          
+          BRANCH_NAME=$(git rev-parse --abbrev-ref HEAD)
+
           if [[ $BRANCH_NAME == shell/* ]] || [[ $(npx nx affected:apps --base=$(BASE_SHA) --head=$(HEAD_SHA) --plain) == *"shell"* ]]; then
             echo "Building shell..."
             npx nx build shell
