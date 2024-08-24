@@ -1,18 +1,8 @@
 name: CI
 
 trigger:
-  branches:
-    include:
       - main
-
-pr:
-  branches:
-    include:
-      - main
-      - mrf1/*
-      - mrf2/*
-      - shell/*
-
+      
 variables:
   CI: 'true'
   ${{ if eq(variables['Build.Reason'], 'PullRequest') }}:
