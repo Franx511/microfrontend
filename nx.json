@@ -14,7 +14,6 @@
     ],
     "sharedGlobals": ["{workspaceRoot}/azure-pipelines.yml"]
   },
-  "nxCloudAccessToken": "NjEwNWQzODAtMWY3MC00OTdkLWE0OGQtMmZmYTM3NjI4ZTk2fHJlYWQtd3JpdGU=",
   "targetDefaults": {
     "@angular-devkit/build-angular:browser": {
       "cache": true,
